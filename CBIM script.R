@@ -3197,16 +3197,16 @@ pooled_boot_CI <- function(m_fit, mids_obj, subset_mask = rep(TRUE, nrow(mids_ob
        R2 = list(est = R2_point, lower = R2_ci[1], upper = R2_ci[2]))
 }
 
-ConfInterv2 <- data.frame(Model = rep(c("C", "CB", "CBI", "CBIM"), 9), 
-                          Outcome = c(rep(endpoints[1], 4),
-                                      rep(endpoints[2], 4),
-                                      rep(endpoints[3], 4),
-                                      rep(endpoints[4], 4),
-                                      rep(endpoints[5], 4),
-                                      rep(endpoints[6], 4),
-                                      rep(endpoints[7], 4),
-                                      rep(endpoints[8], 4),
-                                      rep(endpoints[9], 4)),  
+ConfInterv2 <- data.frame(Model = rep(c("C", "B", "I", "M", "CB", "CBI", "CBIM"), 9), 
+                          Outcome = c(rep(endpoints[1], 7),
+                                      rep(endpoints[2], 7),
+                                      rep(endpoints[3], 7),
+                                      rep(endpoints[4], 7),
+                                      rep(endpoints[5], 7),
+                                      rep(endpoints[6], 7),
+                                      rep(endpoints[7], 7),
+                                      rep(endpoints[8], 7),
+                                      rep(endpoints[9], 7)),  
                           Events=NA, n = NA, 
                           C=NA, R=NA, 
                           AUC = NA, AUC_ll = NA, AUC_ul = NA, 
@@ -3249,6 +3249,10 @@ for (j in endpoints[1:9]) {
                                       xtrans = dti, subset = dti$data$subjectId %in% obs_end, 
                                       fit.reps = T, fitargs = list(x=TRUE, y=TRUE), pr = F)
   long$temp_b <- predict(model_biomarkers, newdata=long) 
+  Store_cis <- pooled_boot_CI(model_biomarkers, dti, dti$data$subjectId %in% obs_end, B = 200, seed = 153)
+  ConfInterv2[ConfInterv2$Model == "B" & ConfInterv2$Outcome == j, 5:12] <- c(model_biomarkers$stats[["C"]], model_biomarkers$stats[["R2"]], Store_cis$C$est, Store_cis$C$lower, Store_cis$C$upper, 
+                                                                              Store_cis$R2$est, Store_cis$R2$lower, Store_cis$R2$upper)
+  
   # I PILLAR
   if (!j == "Detectable_intracranial_injury_on_CT_early") {
     
@@ -3256,6 +3260,9 @@ for (j in endpoints[1:9]) {
                                      xtrans = dti, subset = dti$data$subjectId %in% obs_end, 
                                      fit.reps = T, fitargs = list(x=TRUE, y=TRUE), pr = F)
     long$temp_i <- predict(model_imaging, newdata=long) 
+    Store_cis <- pooled_boot_CI(model_imaging, dti, dti$data$subjectId %in% obs_end, B = 200, seed = 153)
+    ConfInterv2[ConfInterv2$Model == "I" & ConfInterv2$Outcome == j, 5:12] <- c(model_imaging$stats[["C"]], model_imaging$stats[["R2"]], Store_cis$C$est, Store_cis$C$lower, Store_cis$C$upper, 
+                                                                                Store_cis$R2$est, Store_cis$R2$lower, Store_cis$R2$upper)
     
   } else {
     model_imaging <- NULL
@@ -3269,6 +3276,10 @@ for (j in endpoints[1:9]) {
                                      xtrans = dti, subset = dti$data$subjectId %in% obs_end, 
                                      fit.reps = T, fitargs = list(x=TRUE, y=TRUE), pr = F)
   long$temp_m <- predict(model_modifiers, newdata=long)  
+  Store_cis <- pooled_boot_CI(model_modifiers, dti, dti$data$subjectId %in% obs_end, B = 200, seed = 153)
+  ConfInterv2[ConfInterv2$Model == "M" & ConfInterv2$Outcome == j, 5:12] <- c(model_modifiers$stats[["C"]], model_modifiers$stats[["R2"]], Store_cis$C$est, Store_cis$C$lower, Store_cis$C$upper, 
+                                                                              Store_cis$R2$est, Store_cis$R2$lower, Store_cis$R2$upper)
+  
   
   ## CUMULATIVE MODELS, plot redistribution of predicted risk
   dti.lp <- as.mids(long[, c(".imp", ".id", "subjectId", j, "temp_c", "temp_b", "temp_i", "temp_m")])
@@ -3317,7 +3328,7 @@ for (j in endpoints[1:9]) {
 
 EditedConfInterv2 <- ConfInterv2
 
-EditedConfInterv2[, 5:12] <- round(EditedConfInterv2[, 5:12], 2)
+EditedConfInterv2[, 5:12] <- format(round(EditedConfInterv2[, 5:12], 2), nsmall=2)
 EditedConfInterv2$AUC_CI <- paste0(EditedConfInterv2$AUC, " (", EditedConfInterv2$AUC_ll, " - ", 
                                    EditedConfInterv2$AUC_ul, ")") 
 EditedConfInterv2$R2_CI <- paste0(EditedConfInterv2$R2, " (", EditedConfInterv2$R2_ll, " - ", 
@@ -3327,10 +3338,11 @@ EditedConfInterv2$Outcome <- gsub("_", " ", EditedConfInterv2$Outcome)
 
 EditedConfIntervC2 <- EditedConfInterv2[, c(1, 2, 15, 13)]
 EditedConfIntervC2 <- reshape(EditedConfIntervC2, idvar = "Outcome", timevar = "Model", direction = "wide")
-EditedConfIntervC2 <- EditedConfIntervC2[, c(1:3, 5, 7, 9)]
+EditedConfIntervC2 <- EditedConfIntervC2[, c(1:3, 5, 7, 9, 11, 13, 15)]
+
 EditedConfIntervR2 <- EditedConfInterv2[, c(1, 2, 15, 14)]
 EditedConfIntervR2 <- reshape(EditedConfIntervR2, idvar = "Outcome", timevar = "Model", direction = "wide")
-EditedConfIntervR2 <- EditedConfIntervR2[, c(1:3, 5, 7, 9)]
+EditedConfIntervR2 <- EditedConfIntervR2[, c(1:3, 5, 7, 9, 11, 13, 15)]
 
 write.xlsx(EditedConfIntervC2, "EXPORT/AUC_R2s.xlsx", sheetName = "AUC")
 write.xlsx(EditedConfIntervR2, "EXPORT/AUC_R2s.xlsx", sheetName = "R2", append = T)
@@ -4803,4 +4815,236 @@ B_paired$delta_S100B <- B_paired$Biomarkers.S100B_late - B_paired$Biomarkers.S10
 summary(B_paired$delta_S100B)
 B_paired$delta_UCHL1 <- B_paired$Biomarkers.UCH.L1_late - B_paired$Biomarkers.UCH.L1_early
 summary(B_paired$delta_UCHL1)
+
+
+### 95% CIs for partial R2s - available cases -------------------------------------------------
+
+# run after line 2499 (for variable names without space, before imputation)
+
+supp_table_cc <- data.frame(Outcome = c("Detectable intracranial injury on CT early", "Hospital admission", "ICU admission", "ICP monitoring",  "Major cranial surgery within 72h", "Mortality at 6 months", 
+                                        "Unfavorable outcome at 6 months", "Incomplete recovery at 6 months", "Impairment of HRQOL"), 
+                            CBIM = NA, C = NA, B = NA,  I = NA, M = NA)
+
+for (j in c("Detectable intracranial injury on CT early", "Hospital admission", "ICU admission", "ICP monitoring",  "Major cranial surgery within 72h", "Mortality at 6 months", 
+            "Unfavorable outcome at 6 months", "Incomplete recovery at 6 months", "Impairment of HRQOL")) {
+  
+  # select complete cases for each endpoint
+  all_cc <- all_original_data[complete.cases(all_original_data[, c(names_components, j)]),]
+  # ICP monitoring analyzed only in ICU subgroup
+  if(j %in% c("ICP monitoring")) {all_cc <- all_cc[all_cc$`ICU admission` %in% c("Yes"), ]} 
+  
+  # rename columns to avoid Error in X[, mmcolnames, drop = FALSE] : subscript out of bounds
+  all_cc <- all_cc %>% 
+    rename(
+      "Any_abnormality" = "Any abnormality", 
+      "Skull_fracture" = "Skull fracture", 
+      "Epidural_hematoma" = "Epidural hematoma", 
+      "Subdural_hematoma" = "Subdural hematoma", 
+      "Contusion_or_ICH" = "Contusion or ICH",
+      "Mass_effect" = "Mass effect", 
+      "Total_lesion_volume_25" = "Total lesion volume >= 25",
+      "Mechanism_of_injury" = "Mechanism of injury", 
+      "Major_extracranial_injury" = "Major extracranial injury", 
+      "Accidental_cause" = "Accidental cause",
+      "Medical_history" = "Medical history",
+      "ASAPS_class" = "ASAPS class", 
+      "Psychiatric_history" = "Psychiatric history",
+      "Developmental_history" = "Developmental history",
+      "TBI_history" = "TBI history",
+      "Employment_status_Job_classification" = "Employment status Job classification",
+      "Highest_level_of_education" = "Highest level of education")
+  
+  # C PILLAR
+  model_clinical <- glm(as.formula(paste0("`", j, "` ~ `Pupils` + ", ifelse(RCS[RCS$Variable == "GCS Score" & RCS$Outcome == j, ]$RCS == 1, 
+                                                                            c_formula_gcs_rcs, c_formula_gcs_lin))), data = all_cc, family = "binomial")
+  all_cc$temp_c <- model_clinical$linear.predictors
+  
+  # B PILLAR
+  model_biomarkers <- glm(as.formula(paste0("`", j, "` ~ (", 
+                                            ifelse(RCS[RCS$Variable == "GFAP" & RCS$Outcome == j, ]$RCS == 1, gfap_formula_rcs, gfap_formula_lin), " + ",
+                                            ifelse(RCS[RCS$Variable == "UCHL1" & RCS$Outcome == j, ]$RCS == 1, uchl1_formula_rcs, uchl1_formula_lin), " + ",
+                                            ifelse(RCS[RCS$Variable == "S100B" & RCS$Outcome == j, ]$RCS == 1, s100b_formula_rcs, s100b_formula_lin), ") *",
+                                            ifelse(RCS[RCS$Variable == "Time to sampling" & RCS$Outcome == j, ]$RCS == 1, tts_formula_rcs, tts_formula_lin))), data = all_cc, family = "binomial")
+  all_cc$temp_b <- model_biomarkers$linear.predictors
+  
+  # M PILLAR
+  model_modifiers <- glm(as.formula(paste0("`", j, "` ~ `Mechanism_of_injury`+`Seizures`+`Major_extracranial_injury`+`Hypoxia`+`Hypotension`+`Accidental_cause`+", 
+                                           ifelse(RCS[RCS$Variable == "Age" & RCS$Outcome == j, ]$RCS == 1, age_formula_rcs, age_formula_lin), 
+                                           "+`Sex`+`Medical_history`+`Psychiatric_history`+`Developmental_history`+`TBI_history`")), data = all_cc, family = "binomial")
+  all_cc$temp_m <- model_modifiers$linear.predictors
+  
+  # I PILLAR
+  if (!j == "Detectable intracranial injury on CT early") {
+    model_imaging <- glm(as.formula(paste0("`", j, "` ~ `Any_abnormality`+`Skull_fracture`+`Epidural_hematoma`+`Subdural_hematoma`+`TSAH`+`Contusion_or_ICH`+`TAMVI`+`IVH`+`Mass_effect`+`Total_lesion_volume_25`")), data = all_cc, family = "binomial")
+    all_cc$temp_i <- model_imaging$linear.predictors
+    
+    model_cbim <- glm(as.formula(paste0("`", j, "` ~ temp_c + temp_b + temp_i + temp_m")), data = all_cc, family = "binomial")
+    dat <- model.frame(model_cbim)
+    print(nrow(dat))
+    boot_r2 <- data.frame(CBIM = rep(NA, 1000), C = rep(NA, 1000), B = rep(NA, 1000), I = rep(NA, 1000), M = rep(NA, 1000))
+    
+    set.seed(21)
+    # Bootstrap
+    for (row_i in c(1:1000)) {
+      # Resample rows
+      ind <- sample(seq_len(nrow(dat)), size = nrow(dat), replace = TRUE)
+      d <- dat[ind, , drop = FALSE]
+      # Refit model
+      fit <- tryCatch(update(model_cbim, data = d), error = function(e) NULL)
+      if (is.null(fit)) next
+      # Partial R2
+      r2 <- tryCatch(rsq.partial(fit, type = "n")$partial.rsq, error = function(e) NULL)
+      if (is.null(r2)) next
+      boot_r2[row_i, ] <- c(rsq(fit, type = "n"), r2)
+    }
+    
+    for(pillar in 1:5){
+      supp_table_cc[supp_table_cc$Outcome == gsub("_", " ", j), pillar+1] <- paste0(format(round(c(rsq(model_cbim, type = "n"), rsq.partial(model_cbim, type = 'n')$partial.rsq), 2), nsmall=2)[pillar], " (",
+                                                                                    format(round(apply(boot_r2, 2, quantile, probs = 0.025, na.rm = TRUE), 2), nsmall=2)[pillar], " - ",
+                                                                                    format(round(apply(boot_r2, 2, quantile, probs = 0.975, na.rm = TRUE), 2), nsmall=2)[pillar], ")")
+    }
+  } else {
+    model_cbm <- glm(as.formula(paste0("`", j, "` ~ temp_c + temp_b + temp_m")), data = all_cc, family = "binomial")
+    dat <- model.frame(model_cbm)
+    print(nrow(dat))
+    boot_r2 <- data.frame(CBM = rep(NA, 1000), C = rep(NA, 1000), B = rep(NA, 1000), M = rep(NA, 1000))
+    
+    set.seed(21)
+    # Bootstrap
+    for (row_i in c(1:1000)) {
+      # Resample rows
+      ind <- sample(seq_len(nrow(dat)), size = nrow(dat), replace = TRUE)
+      d <- dat[ind, , drop = FALSE]
+      # Refit model
+      fit <- tryCatch(update(model_cbm, data = d), error = function(e) NULL)
+      if (is.null(fit)) next
+      # Partial R2
+      r2 <- tryCatch(rsq.partial(fit, type = "n")$partial.rsq, error = function(e) NULL)
+      if (is.null(r2)) next
+      boot_r2[row_i, ] <- c(rsq(fit, type = "n"), r2)
+    }
+    
+    for(pillar in c(1:4)){
+      supp_table_cc[supp_table_cc$Outcome == gsub("_", " ", j), pillar+1] <- paste0(format(round(c(rsq(model_cbm, type = "n"), rsq.partial(model_cbm, type = 'n')$partial.rsq), 2), nsmall=2)[pillar], " (",
+                                                                                    format(round(apply(boot_r2, 2, quantile, probs = 0.025, na.rm = TRUE), 2), nsmall=2)[pillar], " - ",
+                                                                                    format(round(apply(boot_r2, 2, quantile, probs = 0.975, na.rm = TRUE), 2), nsmall=2)[pillar], ")")
+    }
+    
+  }
+}
+
+supp_table_cc[supp_table_cc$Outcome == "Detectable intracranial injury on CT early", "M"] <- supp_table_cc[supp_table_cc$Outcome == "Detectable intracranial injury on CT early", "I"] 
+supp_table_cc[supp_table_cc$Outcome == "Detectable intracranial injury on CT early", "I"] <- NA
+
+write.xlsx(supp_table_cc, "EXPORT/S5_Table.xlsx", sheetName = "CC")
+
+
+### 95% CIs for partial R2s - imputed data ----------------------------------
+
+# run at the end of the script
+supp_table_imp <- data.frame(Outcome = c("Detectable intracranial injury on CT early", "Hospital admission", "ICU admission", "ICP monitoring",  "Major cranial surgery within 72h", "Mortality at 6 months", 
+                                         "Unfavorable outcome at 6 months", "Incomplete recovery at 6 months", "Impairment of HRQOL"), 
+                             CBIM = NA, C = NA, B = NA,  I = NA, M = NA)
+
+for (j in gsub(" ", "_", c("Detectable intracranial injury on CT early", "Hospital admission", "ICU admission", "ICP monitoring",  "Major cranial surgery within 72h", "Mortality at 6 months", 
+                           "Unfavorable outcome at 6 months", "Incomplete recovery at 6 months", "Impairment of HRQOL"))) {
+  
+  # select complete cases for each endpoint
+  all_cc <- complete(dti, 5)
+  all_cc <- all_cc[all_cc$subjectId %in% all_original_data[!is.na(all_original_data[, gsub("_", " ", j)]), ]$subjectId &
+                     !all_cc$subjectId %in% c("6DYY996"), ]
+  
+  # ICP monitoring analyzed only in ICU subgroup
+  if(j %in% c("ICP monitoring")) {all_cc <- all_cc[all_cc$`ICU admission` %in% c("Yes"), ]} 
+  
+  # C PILLAR
+  model_clinical <- glm(as.formula(paste0("`", j, "` ~ `Pupils` + ", ifelse(RCS[RCS$Variable == "GCS Score" & RCS$Outcome == gsub("_", " ", j), ]$RCS == 1, 
+                                                                            c_formula_gcs_rcs, c_formula_gcs_lin))), data = all_cc, family = "binomial")
+  all_cc$temp_c <- model_clinical$linear.predictors
+  
+  # B PILLAR
+  model_biomarkers <- glm(as.formula(paste0("`", j, "` ~ (", 
+                                            ifelse(RCS[RCS$Variable == "GFAP" & RCS$Outcome == gsub("_", " ", j), ]$RCS == 1, gfap_formula_rcs, gfap_formula_lin), " + ",
+                                            ifelse(RCS[RCS$Variable == "UCHL1" & RCS$Outcome == gsub("_", " ", j), ]$RCS == 1, uchl1_formula_rcs, uchl1_formula_lin), " + ",
+                                            ifelse(RCS[RCS$Variable == "S100B" & RCS$Outcome == gsub("_", " ", j), ]$RCS == 1, s100b_formula_rcs, s100b_formula_lin), ") *",
+                                            ifelse(RCS[RCS$Variable == "Time to sampling" & RCS$Outcome == gsub("_", " ", j), ]$RCS == 1, tts_formula_rcs, tts_formula_lin))), data = all_cc, family = "binomial")
+  all_cc$temp_b <- model_biomarkers$linear.predictors
+  
+  # M PILLAR
+  model_modifiers <- glm(as.formula(paste0("`", j, "` ~ `Mechanism_of_injury`+`Seizures`+`Major_extracranial_injury`+`Hypoxia`+`Hypotension`+`Accidental_cause`+", 
+                                           ifelse(RCS[RCS$Variable == "Age" & RCS$Outcome == gsub("_", " ", j), ]$RCS == 1, age_formula_rcs, age_formula_lin), 
+                                           "+`Sex`+`Medical_history`+`Psychiatric_history`+`Developmental_history`+`TBI_history`")), data = all_cc, family = "binomial")
+  all_cc$temp_m <- model_modifiers$linear.predictors
+  
+  # I PILLAR
+  if (!j == "Detectable_intracranial_injury_on_CT_early") {
+    model_imaging <- glm(as.formula(paste0("`", j, "` ~ `Any_abnormality`+`Skull_fracture`+`Epidural_hematoma`+`Subdural_hematoma`+`TSAH`+`Contusion_or_ICH`+`TAMVI`+`IVH`+`Mass_effect`+`Total_lesion_volume_25`")), data = all_cc, family = "binomial")
+    all_cc$temp_i <- model_imaging$linear.predictors
+    
+    model_cbim <- glm(as.formula(paste0("`", j, "` ~ temp_c + temp_b + temp_i + temp_m")), data = all_cc, family = "binomial")
+    
+    dat <- model.frame(model_cbim)
+    print(nrow(dat))
+    boot_r2 <- data.frame(C = rep(NA, 1000), B = rep(NA, 1000), I = rep(NA, 1000), M = rep(NA, 1000))
+    
+    set.seed(21)
+    # Bootstrap
+    for (row_i in c(1:1000)) {
+      # Resample rows
+      ind <- sample(seq_len(nrow(dat)), size = nrow(dat), replace = TRUE)
+      d <- dat[ind, , drop = FALSE]
+      # Refit model
+      fit <- tryCatch(update(model_cbim, data = d), error = function(e) NULL)
+      if (is.null(fit)) next
+      # Partial R2
+      r2 <- tryCatch(rsq.partial(fit, type = "n")$partial.rsq, error = function(e) NULL)
+      if (is.null(r2)) next
+      boot_r2[row_i, ] <- r2
+    }
+    
+    for(pillar in 1:4){
+      supp_table_imp[supp_table_imp$Outcome == gsub("_", " ", j), pillar+2] <- paste0(format(round(rsq.partial(model_cbim, type = 'n')$partial.rsq, 2), nsmall=2)[pillar], " (",
+                                                                                      format(round(apply(boot_r2, 2, quantile, probs = 0.025, na.rm = TRUE), 2), nsmall=2)[pillar], " - ",
+                                                                                      format(round(apply(boot_r2, 2, quantile, probs = 0.975, na.rm = TRUE), 2), nsmall=2)[pillar], ")")
+    }
+    
+  } else {
+    model_cbm <- glm(as.formula(paste0("`", j, "` ~ temp_c + temp_b + temp_m")), data = all_cc, family = "binomial")
+    
+    dat <- model.frame(model_cbm)
+    print(nrow(dat))
+    boot_r2 <- data.frame(C = rep(NA, 1000), B = rep(NA, 1000), M = rep(NA, 1000))
+    
+    set.seed(21)
+    # Bootstrap
+    for (row_i in c(1:1000)) {
+      # Resample rows
+      ind <- sample(seq_len(nrow(dat)), size = nrow(dat), replace = TRUE)
+      d <- dat[ind, , drop = FALSE]
+      # Refit model
+      fit <- tryCatch(update(model_cbm, data = d), error = function(e) NULL)
+      if (is.null(fit)) next
+      # Partial R2
+      r2 <- tryCatch(rsq.partial(fit, type = "n")$partial.rsq, error = function(e) NULL)
+      if (is.null(r2)) next
+      boot_r2[row_i, ] <- r2
+    }
+    
+    for(pillar in c(1:3)){
+      supp_table_imp[supp_table_imp$Outcome == gsub("_", " ", j), pillar+2] <- paste0(format(round(rsq.partial(model_cbm, type = 'n')$partial.rsq, 2), nsmall=2)[pillar], " (",
+                                                                                      format(round(apply(boot_r2, 2, quantile, probs = 0.025, na.rm = TRUE), 2), nsmall=2)[pillar], " - ",
+                                                                                      format(round(apply(boot_r2, 2, quantile, probs = 0.975, na.rm = TRUE), 2), nsmall=2)[pillar], ")")
+    }
+    
+  }
+  
+}
+
+supp_table_imp[supp_table_imp$Outcome == "Detectable intracranial injury on CT early", "M"] <- supp_table_imp[supp_table_imp$Outcome == "Detectable intracranial injury on CT early", "I"] 
+supp_table_imp[supp_table_imp$Outcome == "Detectable intracranial injury on CT early", "I"] <- NA
+
+supp_table_imp[, 2] <- EditedConfIntervR2[, "R2_CI.CBIM"]
+
+write.xlsx(supp_table_imp, "EXPORT/S5_Table.xlsx", sheetName = "IMP", append = T)
+
 
