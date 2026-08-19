@@ -5002,7 +5002,7 @@ for (j in gsub(" ", "_", c("Detectable intracranial injury on CT early", "Hospit
       boot_r2[row_i, ] <- c(rsq(fit, type = "n"), r2)
     }
     
-    for(pillar in 1:4){
+    for(pillar in 1:5){
       supp_table_imp[supp_table_imp$Outcome == gsub("_", " ", j), pillar+1] <- paste0(format(round(c(rsq(model_cbim, type = "n"), rsq.partial(model_cbim, type = 'n')$partial.rsq), 2), nsmall=2)[pillar], " (",
                                                                                       format(round(apply(boot_r2, 2, quantile, probs = 0.025, na.rm = TRUE), 2), nsmall=2)[pillar], " - ",
                                                                                       format(round(apply(boot_r2, 2, quantile, probs = 0.975, na.rm = TRUE), 2), nsmall=2)[pillar], ")")
@@ -5030,7 +5030,7 @@ for (j in gsub(" ", "_", c("Detectable intracranial injury on CT early", "Hospit
       boot_r2[row_i, ] <- c(rsq(fit, type = "n"), r2)
     }
     
-    for(pillar in c(1:3)){
+    for(pillar in c(1:4)){
       supp_table_imp[supp_table_imp$Outcome == gsub("_", " ", j), pillar+1] <- paste0(format(round(c(rsq(model_cbm, type = "n"), rsq.partial(model_cbm, type = 'n')$partial.rsq), 2), nsmall=2)[pillar], " (",
                                                                                       format(round(apply(boot_r2, 2, quantile, probs = 0.025, na.rm = TRUE), 2), nsmall=2)[pillar], " - ",
                                                                                       format(round(apply(boot_r2, 2, quantile, probs = 0.975, na.rm = TRUE), 2), nsmall=2)[pillar], ")")
@@ -5043,5 +5043,6 @@ for (j in gsub(" ", "_", c("Detectable intracranial injury on CT early", "Hospit
 supp_table_imp[supp_table_imp$Outcome == "Detectable intracranial injury on CT early", "M"] <- supp_table_imp[supp_table_imp$Outcome == "Detectable intracranial injury on CT early", "I"] 
 supp_table_imp[supp_table_imp$Outcome == "Detectable intracranial injury on CT early", "I"] <- NA
 
+write.xlsx(supp_table_cc, "EXPORT/S5_Table.xlsx", sheetName = "CC")
 write.xlsx(supp_table_imp, "EXPORT/S5_Table.xlsx", sheetName = "IMP", append = T)
 
