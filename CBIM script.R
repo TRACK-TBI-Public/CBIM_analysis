@@ -4985,7 +4985,7 @@ for (j in gsub(" ", "_", c("Detectable intracranial injury on CT early", "Hospit
     
     dat <- model.frame(model_cbim)
     print(nrow(dat))
-    boot_r2 <- data.frame(C = rep(NA, 1000), B = rep(NA, 1000), I = rep(NA, 1000), M = rep(NA, 1000))
+    boot_r2 <- data.frame(CBIM = rep(NA, 1000), C = rep(NA, 1000), B = rep(NA, 1000), I = rep(NA, 1000), M = rep(NA, 1000))
     
     set.seed(21)
     # Bootstrap
@@ -4999,11 +4999,11 @@ for (j in gsub(" ", "_", c("Detectable intracranial injury on CT early", "Hospit
       # Partial R2
       r2 <- tryCatch(rsq.partial(fit, type = "n")$partial.rsq, error = function(e) NULL)
       if (is.null(r2)) next
-      boot_r2[row_i, ] <- r2
+      boot_r2[row_i, ] <- c(rsq(fit, type = "n"), r2)
     }
     
     for(pillar in 1:4){
-      supp_table_imp[supp_table_imp$Outcome == gsub("_", " ", j), pillar+2] <- paste0(format(round(rsq.partial(model_cbim, type = 'n')$partial.rsq, 2), nsmall=2)[pillar], " (",
+      supp_table_imp[supp_table_imp$Outcome == gsub("_", " ", j), pillar+1] <- paste0(format(round(c(rsq(model_cbim, type = "n"), rsq.partial(model_cbim, type = 'n')$partial.rsq), 2), nsmall=2)[pillar], " (",
                                                                                       format(round(apply(boot_r2, 2, quantile, probs = 0.025, na.rm = TRUE), 2), nsmall=2)[pillar], " - ",
                                                                                       format(round(apply(boot_r2, 2, quantile, probs = 0.975, na.rm = TRUE), 2), nsmall=2)[pillar], ")")
     }
@@ -5013,7 +5013,7 @@ for (j in gsub(" ", "_", c("Detectable intracranial injury on CT early", "Hospit
     
     dat <- model.frame(model_cbm)
     print(nrow(dat))
-    boot_r2 <- data.frame(C = rep(NA, 1000), B = rep(NA, 1000), M = rep(NA, 1000))
+    boot_r2 <- data.frame(CBM = rep(NA, 1000), C = rep(NA, 1000), B = rep(NA, 1000), M = rep(NA, 1000))
     
     set.seed(21)
     # Bootstrap
@@ -5027,11 +5027,11 @@ for (j in gsub(" ", "_", c("Detectable intracranial injury on CT early", "Hospit
       # Partial R2
       r2 <- tryCatch(rsq.partial(fit, type = "n")$partial.rsq, error = function(e) NULL)
       if (is.null(r2)) next
-      boot_r2[row_i, ] <- r2
+      boot_r2[row_i, ] <- c(rsq(fit, type = "n"), r2)
     }
     
     for(pillar in c(1:3)){
-      supp_table_imp[supp_table_imp$Outcome == gsub("_", " ", j), pillar+2] <- paste0(format(round(rsq.partial(model_cbm, type = 'n')$partial.rsq, 2), nsmall=2)[pillar], " (",
+      supp_table_imp[supp_table_imp$Outcome == gsub("_", " ", j), pillar+1] <- paste0(format(round(c(rsq(model_cbm, type = "n"), rsq.partial(model_cbm, type = 'n')$partial.rsq), 2), nsmall=2)[pillar], " (",
                                                                                       format(round(apply(boot_r2, 2, quantile, probs = 0.025, na.rm = TRUE), 2), nsmall=2)[pillar], " - ",
                                                                                       format(round(apply(boot_r2, 2, quantile, probs = 0.975, na.rm = TRUE), 2), nsmall=2)[pillar], ")")
     }
@@ -5043,8 +5043,5 @@ for (j in gsub(" ", "_", c("Detectable intracranial injury on CT early", "Hospit
 supp_table_imp[supp_table_imp$Outcome == "Detectable intracranial injury on CT early", "M"] <- supp_table_imp[supp_table_imp$Outcome == "Detectable intracranial injury on CT early", "I"] 
 supp_table_imp[supp_table_imp$Outcome == "Detectable intracranial injury on CT early", "I"] <- NA
 
-supp_table_imp[, 2] <- EditedConfIntervR2[, "R2_CI.CBIM"]
-
 write.xlsx(supp_table_imp, "EXPORT/S5_Table.xlsx", sheetName = "IMP", append = T)
-
 
